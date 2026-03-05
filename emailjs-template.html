@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>EmailJS Template Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05070f; --card: rgba(14,20,38,0.9); --cyan: #00c8ff; --violet: #7c5cfc;
+    --gold: #fbbf24; --text: #d4dce8; --muted: rgba(212,220,232,0.5); --border: rgba(0,200,255,0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 40px 20px; }
+
+  h1 { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; letter-spacing: -1px;
+    background: linear-gradient(135deg, #fff 30%, var(--cyan) 70%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; }
+  .subtitle { color: var(--muted); font-size: .88rem; margin-bottom: 32px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1100px; margin: auto; }
+  @media(max-width:800px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; }
+  .panel-title {
+    font-family: 'Syne', sans-serif; font-size: .8rem; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase; color: var(--cyan); margin-bottom: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-title::before { content: ""; width: 6px; height: 6px; background: var(--cyan); border-radius: 50%; box-shadow: 0 0 8px var(--cyan); }
+
+  label { display: block; font-size: .78rem; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 6px; margin-top: 16px; }
+  label:first-of-type { margin-top: 0; }
+
+  input, textarea {
+    width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px; padding: 12px 16px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: .9rem;
+    transition: border-color .25s, box-shadow .25s; outline: none; resize: vertical;
+  }
+  input:focus, textarea:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,200,255,0.08); }
+  textarea { min-height: 120px; }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .tag {
+    font-size: .72rem; padding: 4px 12px; border-radius: 100px; cursor: pointer;
+    background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.2);
+    color: var(--cyan); font-family: 'JetBrains Mono', monospace;
+    transition: background .2s, transform .15s;
+    user-select: none;
+  }
+  .tag:hover { background: rgba(0,200,255,0.18); transform: scale(1.05); }
+  .tag:active { transform: scale(.97); }
+
+  /* Preview panel */
+  .email-preview {
+    background: #0d1117; border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06); font-family: 'DM Sans', sans-serif;
+  }
+  .email-header { background: #161b22; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .email-header-row { display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px; font-size: .82rem; }
+  .email-header-row:last-child { margin-bottom: 0; }
+  .email-label { color: var(--muted); min-width: 60px; font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; }
+  .email-val { color: var(--text); }
+  .email-subject-val { color: #fff; font-weight: 600; }
+  .email-body-wrap { padding: 20px; }
+  .email-body {
+    color: var(--text); font-size: .88rem; line-height: 1.8;
+    white-space: pre-wrap; word-break: break-word;
+    min-height: 80px;
+  }
+  .email-divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 16px 0; }
+  .email-footer { color: var(--muted); font-size: .75rem; }
+
+  /* Code output */
+  .code-block {
+    background: #0d1117; border-radius: 12px; padding: 20px;
+    font-family: 'JetBrains Mono', monospace; font-size: .78rem;
+    color: #a8d8ff; line-height: 1.7; overflow-x: auto;
+    border: 1px solid rgba(255,255,255,0.06); position: relative;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .code-key   { color: #ff7b7b; }
+  .code-val   { color: #b5f4a5; }
+  .code-var   { color: var(--cyan); }
+  .code-brace { color: var(--muted); }
+
+  .copy-btn {
+    position: absolute; top: 12px; right: 12px;
+    background: rgba(0,200,255,0.1); border: 1px solid rgba(0,200,255,0.25);
+    color: var(--cyan); border-radius: 8px; padding: 5px 12px;
+    font-size: .72rem; font-family: 'DM Sans', sans-serif; cursor: pointer;
+    transition: background .2s; letter-spacing: .4px;
+  }
+  .copy-btn:hover { background: rgba(0,200,255,0.22); }
+  .copy-btn.copied { color: #4ade80; border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.1); }
+
+  .hint {
+    background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.2);
+    border-radius: 10px; padding: 14px 18px; font-size: .82rem; color: #fbbf24;
+    line-height: 1.6; margin-top: 20px;
+  }
+  .hint strong { font-weight: 600; }
+
+  .header-area { max-width: 1100px; margin: 0 auto 28px; }
+</style>
+</head>
+<body>
+
+<div class="header-area">
+  <h1>EmailJS Template Builder</h1>
+  <p class="subtitle">Construisez votre template visuellement — copiez le code dans EmailJS</p>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT: Editor -->
+  <div>
+    <div class="panel">
+      <div class="panel-title">Éditeur de template</div>
+
+      <label>Sujet (Subject)</label>
+      <input id="tplSubject" type="text" value="📩 Nouveau message de {{from_name}} — Portfolio" placeholder="Sujet de l'email...">
+
+      <label>Corps du message (Body)</label>
+      <textarea id="tplBody">Bonjour Omar,
+
+Tu as reçu un nouveau message via ton portfolio.
+
+──────────────────────────────
+👤  Nom        : {{from_name}}
+📧  Email      : {{from_email}}
+💼  Objet      : {{subject}}
+──────────────────────────────
+
+{{message}}
+
+──────────────────────────────
+Envoyé depuis ton portfolio · omarbouchouka.dev</textarea>
+
+      <label>Variables disponibles — cliquez pour insérer</label>
+      <div class="tag-row">
+        <span class="tag" onclick="insertVar('{{from_name}}')">{{from_name}}</span>
+        <span class="tag" onclick="insertVar('{{from_email}}')">{{from_email}}</span>
+        <span class="tag" onclick="insertVar('{{subject}}')">{{subject}}</span>
+        <span class="tag" onclick="insertVar('{{message}}')">{{message}}</span>
+        <span class="tag" onclick="insertVar('{{to_name}}')">{{to_name}}</span>
+      </div>
+
+      <div class="hint">
+        <strong>💡 Comment utiliser :</strong><br>
+        1. Copiez le <strong>Subject</strong> et le <strong>Body</strong> ci-dessus<br>
+        2. Dans EmailJS → <em>Email Templates → Create New Template</em><br>
+        3. Collez chaque champ dans le formulaire EmailJS<br>
+        4. Mettez <strong>To Email</strong> : <code style="color:var(--cyan)">omar.bouchouka69008@gmail.com</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Preview + Code -->
+  <div style="display:flex;flex-direction:column;gap:20px;">
+
+    <div class="panel">
+      <div class="panel-title">Aperçu de l'email reçu</div>
+      <div class="email-preview">
+        <div class="email-header">
+          <div class="email-header-row">
+            <span class="email-label">De</span>
+            <span class="email-val">Jean Dupont &lt;recruteur@entreprise.fr&gt;</span>
+          </div>
+          <div class="email-header-row">
+            <span class="email-label">À</span>
+            <span class="email-val">omar.bouchouka69008@gmail.com</span>
+          </div>
+          <div class="email-header-row">
+            <span class="email-label">Sujet</span>
+            <span class="email-subject-val" id="previewSubject"></span>
+          </div>
+        </div>
+        <div class="email-body-wrap">
+          <div class="email-body" id="previewBody"></div>
+          <hr class="email-divider">
+          <div class="email-footer">Envoyé via EmailJS · Portfolio Omar Bouchouka</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="position:relative">
+      <div class="panel-title">Code à copier dans EmailJS</div>
+      <div style="position:relative">
+        <div class="code-block" id="codeOutput"></div>
+        <button class="copy-btn" id="copyBtn" onclick="copyCode()">Copier</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SAMPLE = {
+  from_name:  'Jean Dupont',
+  from_email: 'recruteur@entreprise.fr',
+  subject:    'Proposition d\'alternance 2026',
+  message:    'Bonjour Omar,\n\nNous avons consulté votre portfolio et votre profil nous intéresse pour une alternance ingénieur informatique.\n\nPouvez-vous nous contacter cette semaine ?\n\nCordialement,\nJean Dupont',
+  to_name:    'Omar',
+};
+
+function fillSample(str) {
+  return str.replace(/\{\{(\w+)\}\}/g, (_, k) => SAMPLE[k] ?? `{{${k}}}`);
+}
+
+function updatePreview() {
+  const subj = document.getElementById('tplSubject').value;
+  const body = document.getElementById('tplBody').value;
+  document.getElementById('previewSubject').textContent = fillSample(subj);
+  document.getElementById('previewBody').textContent    = fillSample(body);
+  updateCode(subj, body);
+}
+
+function updateCode(subj, body) {
+  const escape = s => s.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const hl = s => s.replace(/\{\{(\w+)\}\}/g, '<span class="code-var">{{$1}}</span>');
+
+  document.getElementById('codeOutput').innerHTML =
+    `<span class="code-brace">Subject:</span>\n` +
+    hl(escape(subj)) + `\n\n` +
+    `<span class="code-brace">Body:</span>\n` +
+    hl(escape(body));
+}
+
+function insertVar(v) {
+  const ta = document.getElementById('tplBody');
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  ta.value = ta.value.slice(0,s) + v + ta.value.slice(e);
+  ta.selectionStart = ta.selectionEnd = s + v.length;
+  ta.focus();
+  updatePreview();
+}
+
+function copyCode() {
+  const subj = document.getElementById('tplSubject').value;
+  const body = document.getElementById('tplBody').value;
+  const text = `Subject:\n${subj}\n\nBody:\n${body}`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Copié !';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+document.getElementById('tplSubject').addEventListener('input', updatePreview);
+document.getElementById('tplBody').addEventListener('input', updatePreview);
+
+updatePreview();
+</script>
+</body>
+</html>
